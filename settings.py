@@ -19,12 +19,15 @@ class Config:
     NLM_H = 3
     NLM_TEMPLATE_WINDOW_SIZE = 37
     NLM_SEARCH_WINDOW_SIZE = 15
+
     # Bilateral
     BILATERAL_D = 11
     BILATERAL_SIGMA_COLOR = 35
     BILATERAL_SIGMA_SPACE = 35
+
     # Median
     MEDIAN_K = 5
+
     # Gaussian
     GAUSSIAN_K = (13, 13)
 

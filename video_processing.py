@@ -39,9 +39,7 @@ def mask_roi(img, dx=32, dy=74):
 def processing_frame(frame):
     source_frame = frame.copy()
     frame = mask_roi(frame)
-    # denoise_nn = predict_iter(frame, iterations=iterations)
     denoise_nn = np.clip(frame, 0, 1)
-    # denoise_nlm = processing_cv((denoise_nn * 255 - 255).astype('uint8'))
     return denoise_nn, source_frame
 
 
@@ -125,7 +123,6 @@ class VideoProcessing:
         Path(f"{Config.VIDEO_SAVE_FOLDER_PATH}").mkdir(parents=True, exist_ok=True)
 
     def binaryzation(self, img, ops_for_img, filters_params, debug_view=False, base_image=None):
-
         img_uint8 = np.uint8(img)
         nn_image = img_uint8.copy()
 
@@ -146,7 +143,6 @@ class VideoProcessing:
             img_uint8 = cv2.GaussianBlur(img_uint8, filters_params['kernel_gaussian'], 0)
         gaussian_img = img_uint8.copy()
 
-        # img_binary = binary_segmentation(img_uint8.copy(), 95, 130, 255)
         img_binary = binary_segmentation(img_uint8.copy(), 200, 220, 255)
         binary_img = img_binary.copy()
 

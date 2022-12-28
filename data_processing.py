@@ -1,5 +1,4 @@
 def calc_mean(seq, fps, start_index, length):
-    """Подсчёт среднего значения среди элементов входящего списка"""
     temp_mean = [0, 0]
     for i in range(length):
         temp_elem = seq[start_index + i][3]
@@ -23,13 +22,10 @@ def replace_by_descriptor(seq_by_id, descriptor_list, fps):
 
 
 def find_consistent_seq_descriptor(input_list, fps):
-    """Поиск параметров связанной последовательности фреймов"""
     frame_counter = 0
     prev_frame_index = input_list[0][0] - 1
     descriptor = []
     for i, elem in enumerate(input_list):
-        # Если этот фрейм +1 от прошлого
-        # То увеличиваем среднее и счётчик фреймов
         if prev_frame_index == elem[0] - 1:
             frame_counter += 1
         else:
@@ -65,9 +61,3 @@ def get_inverse_dict(input_dict):
             else:
                 result_dict[frame_data[0]] = [(key, frame_data[1], frame_data[2], frame_data[3])]
     return result_dict
-
-
-def get_mean_data_by_key(data_dict, mean_interval, key_parameter):
-    result_dict = {}
-    for key, val in data_dict.items():
-        descriptor = find_consistent_seq_descriptor(val, mean_interval)
