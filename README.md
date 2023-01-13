@@ -15,6 +15,12 @@ Activate venv:
 python -m venv venv
 ```
 
+Activate virtual environment:
+
+```bash
+source venv/bin/activate
+```
+
 Install deps:
 
 ```bash
@@ -25,7 +31,7 @@ pip install -r requirements.txt
 
 You can use a pre-created configuration file or create your own based on it. 
 
-Use the following params to customize your own configuration file.
+Use the following parameters to customize your own configuration file.
 
 ### Path params
 
@@ -74,7 +80,7 @@ python run.py --config configs/video_denoise/S1.toml
 Use the following command to train the neural network:
 
 ```bash
-python nn_train.py --config configs.toml
+python nn_train.py --config config.toml
 ```
 
 The following command will call the neural network training using the base.toml configuration file:
