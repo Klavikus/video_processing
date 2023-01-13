@@ -32,13 +32,6 @@ class NNDenoise:
         basedir = config['MODEL_DIRECTORY']
         self.model = N2V(n2v_config, model_name, basedir=basedir)
 
-    # def generate_training_data(self, patch_shape=(128, 128)):
-    #     datagen = N2V_DataGenerator()
-    #     imgs = datagen.load_imgs_from_directory(directory=self._directory)
-    #     print(imgs[0].shape, imgs[1].shape)
-    #     X = datagen.generate_patches_from_list(imgs[:1], shape=patch_shape)
-    #     X_val = datagen.generate_patches_from_list(imgs[1:2], shape=patch_shape)
-
     def train(self):
         self.model.train(self.X, self.X_val)
 
