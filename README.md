@@ -23,7 +23,9 @@ pip install -r requirements.txt
 
 ## Configuration
 
-Use Config from settings.py for adjust processing params
+You can use a pre-created configuration file or create your own based on it. 
+
+Use the following params to customize your own configuration file.
 
 ### Path params
 
@@ -41,14 +43,42 @@ Use Config from settings.py for adjust processing params
 ### Filters params
 
 
-| Parameter                    | Description                                                                           | Default |
-|------------------------------|---------------------------------------------------------------------------------------|---------|
-| **NLM_H**                    | Strength                                                                              | 3       |
-| **NLM_TEMPLATE_WINDOW_SIZE** | Size in pixels of the template                                                        | 37      |
-| **NLM_SEARCH_WINDOW_SIZE**   | Size in pixels of the window that is used to compute weighted average for given pixel | 15      |
-| **BILATERAL_D**              | Diameter of each pixel neighborhood that is used during filtering                     | 11      |
-| **BILATERAL_SIGMA_COLOR**    | Filter sigma in the color space                                                       | 35      |
-| **BILATERAL_SIGMA_SPACE**    | Filter sigma in the coordinate space                                                  | 35      |
-| **MEDIAN_K**                 | Aperture linear size                                                                  | 5       |
-| **GAUSSIAN_K**               | Kernel size                                                                           | (13,13) |
-| **MORPH_OPERATIONS**         | [Link](https://docs.opencv.org/4.x/d9/d61/tutorial_py_morphological_ops.html)         | -       |
+| Parameter                    | Description                                                                           | 
+|------------------------------|---------------------------------------------------------------------------------------|
+| **NLM_H**                    | Strength                                                                              | 
+| **NLM_TEMPLATE_WINDOW_SIZE** | Size in pixels of the template                                                        |
+| **NLM_SEARCH_WINDOW_SIZE**   | Size in pixels of the window that is used to compute weighted average for given pixel |
+| **BILATERAL_D**              | Diameter of each pixel neighborhood that is used during filtering                     |
+| **BILATERAL_SIGMA_COLOR**    | Filter sigma in the color space                                                       |
+| **BILATERAL_SIGMA_SPACE**    | Filter sigma in the coordinate space                                                  |
+| **MEDIAN_K**                 | Aperture linear size                                                                  |
+| **GAUSSIAN_K**               | Kernel size                                                                           |
+| **MORPH_OPERATIONS**         | [Link](https://docs.opencv.org/4.x/d9/d61/tutorial_py_morphological_ops.html)         |
+
+## Run
+
+Use the following command to process video file:
+
+```bash
+python run.py --config config.toml
+```
+
+The following command will invoke video processing using the S1.toml configuration file:
+
+```bash
+python run.py --config configs/video_denoise/S1.toml
+```
+
+## Train N2V
+
+Use the following command to train the neural network:
+
+```bash
+python nn_train.py --config configs.toml
+```
+
+The following command will call the neural network training using the base.toml configuration file:
+
+```bash
+python nn_train.py --config configs/nn_train/base.toml
+```
