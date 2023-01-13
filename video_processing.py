@@ -7,7 +7,6 @@ import skvideo
 import skvideo.io
 from pathlib import Path
 import pandas as pd
-from settings import Config
 
 from n2v.models import N2V
 
@@ -21,9 +20,13 @@ cv2_morphology_operation = {
 
 def cv_op(img, operation_list):
     for operation in operation_list:
-        iterations = operation_list[operation][1]
+        splitted = operation.split('_')
+        key = splitted[0]
+        kern_size = (int)(splitted[1])
+        iterations = (int)(splitted[2])
+
         for i in range(iterations):
-            img = cv2_morphology_operation[operation](img, operation_list[operation])
+            img = cv2_morphology_operation[key](img, ((kern_size, kern_size), iterations))
     return img
 
 
@@ -91,36 +94,37 @@ def set_clean_boundary(img, thickness=4):
 
 class VideoProcessing:
 
-    def __init__(self):
-        self.SAMPLE_NAME = Config.SAMPLE_NAME
-        self.LOAD_VIDEO_PATH = f'{Config.SAMPLES_DIRECTORY}/{self.SAMPLE_NAME}.{Config.SAMPLE_EXTENSION}'
-        self.FRAMES_SAVE_PATH = f'{Config.SAVE_FOLDER_PATH}/{self.SAMPLE_NAME}'
+    def __init__(self, config):
+        self.config = config
+        self.SAMPLE_NAME = config["constant"]["SAMPLE_NAME"]
+        self.LOAD_VIDEO_PATH = f'{config["constant"]["SAMPLES_DIRECTORY"]}/{self.SAMPLE_NAME}.{config["constant"]["SAMPLE_EXTENSION"]}'
+        self.FRAMES_SAVE_PATH = f'{config["constant"]["SAVE_FOLDER_PATH"]}/{self.SAMPLE_NAME}'
         self.SOURCE_FRAMES_SAVE_PATH = self.FRAMES_SAVE_PATH + '/source'
         self.DENOISED_FRAMES_SAVE_PATH = self.FRAMES_SAVE_PATH + '/nn_denoise'
         self.BINARY_FRAMES_SAVE_PATH = self.FRAMES_SAVE_PATH + '/morph'
         self.RESULT_FRAMES_SAVE_PATH = self.FRAMES_SAVE_PATH + '/contours_gray'
-        self.VIDEO_SAVE_PATH = f"{Config.VIDEO_SAVE_FOLDER_PATH}/{self.SAMPLE_NAME}_compile.mp4"
-        self.model = N2V(None, Config.N2V_MODEL_NAME, basedir=Config.N2V_MODEL_DIR)
+        self.VIDEO_SAVE_PATH = f"{config['constant']['VIDEO_SAVE_FOLDER_PATH']}/{self.SAMPLE_NAME}_compile.mp4"
+        self.model = N2V(None, config['constant']['N2V_MODEL_NAME'], basedir=config['constant']['N2V_MODEL_DIR'])
         self.centroid_tracker = CentroidTracker()
-        self.scale_factor = Config.SCALE_FACTOR
+        self.scale_factor = config['constant']['SCALE_FACTOR']
 
     def process(self):
         self.prepare_directories()
         ct_data, contours_list, ct_data_dict = self.get_data_denoised_video()
-        mean_data = get_mean_data(ct_data, Config.MEAN_DATA_SAMPLE_RATE)
+        mean_data = get_mean_data(ct_data, self.config['constant']['MEAN_DATA_SAMPLE_RATE'])
         inverse_dict = get_inverse_dict(mean_data)
         self.draw_contours_and_save(inverse_dict, contours_list)
         self.save_video_compilation()
-        self.data_to_xlsx(ct_data_dict, f'{Config.XLSX_SAVE_PATH}/')
+        self.data_to_xlsx(ct_data_dict, f"{self.config['constant']['XLSX_SAVE_PATH']}/")
 
     def prepare_directories(self):
-        save_path = f"./{Config.SAVE_FOLDER_PATH}/{self.SAMPLE_NAME}"
+        save_path = f"./{self.config['constant']['SAVE_FOLDER_PATH']}/{self.SAMPLE_NAME}"
         Path(f"{save_path}/source").mkdir(parents=True, exist_ok=True)
         Path(f"{save_path}/nn_denoise").mkdir(parents=True, exist_ok=True)
         Path(f"{save_path}/morph").mkdir(parents=True, exist_ok=True)
         Path(f"{save_path}/contours_gray").mkdir(parents=True, exist_ok=True)
-        Path(f"{Config.XLSX_SAVE_PATH}").mkdir(parents=True, exist_ok=True)
-        Path(f"{Config.VIDEO_SAVE_FOLDER_PATH}").mkdir(parents=True, exist_ok=True)
+        Path(f"{self.config['constant']['XLSX_SAVE_PATH']}").mkdir(parents=True, exist_ok=True)
+        Path(f"{self.config['constant']['VIDEO_SAVE_FOLDER_PATH']}").mkdir(parents=True, exist_ok=True)
 
     def binaryzation(self, img, ops_for_img, filters_params, debug_view=False, base_image=None):
         img_uint8 = np.uint8(img)
@@ -202,47 +206,56 @@ class VideoProcessing:
         img_uint8 = np.uint8(img)
         nn_predict = np.uint8(self.model.predict(img_uint8, axes="YX"))
 
-        nlm = cv2.fastNlMeansDenoising(nn_predict,
-                                       h=Config.NLM_H,
-                                       templateWindowSize=Config.NLM_TEMPLATE_WINDOW_SIZE,
-                                       searchWindowSize=Config.NLM_TEMPLATE_WINDOW_SIZE)
+        if self.config['constant']['USE_NLM']:
+            nlm = cv2.fastNlMeansDenoising(nn_predict,
+                                           h=self.config['constant']['NLM_H'],
+                                           templateWindowSize=self.config['constant']['NLM_TEMPLATE_WINDOW_SIZE'],
+                                           searchWindowSize=self.config['constant']['NLM_TEMPLATE_WINDOW_SIZE'])
+        else:
+            nlm = nn_predict
 
         img_bilateral = cv2.bilateralFilter(nlm,
-                                            Config.BILATERAL_D,
-                                            Config.BILATERAL_SIGMA_COLOR,
-                                            Config.BILATERAL_SIGMA_SPACE)
+                                            self.config['constant']['BILATERAL_D'],
+                                            self.config['constant']['BILATERAL_SIGMA_COLOR'],
+                                            self.config['constant']['BILATERAL_SIGMA_SPACE'])
 
-        img_median = cv2.medianBlur(img_bilateral, Config.MEDIAN_K)
+        img_median = cv2.medianBlur(img_bilateral, self.config['constant']['MEDIAN_K'])
 
-        if Config.USE_ADAPTIVE:
+        if self.config['constant']['USE_ADAPTIVE']:
             (T, img_binary) = cv2.threshold(img_median, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         else:
-            img_binary = binary_segmentation(img_median, Config.BINARY_THRESHOLD_MIN, Config.BINARY_THRESHOLD_MAX, 255)
+            img_binary = binary_segmentation(img_median,
+                                             self.config['constant']['BINARY_THRESHOLD_MIN'],
+                                             self.config['constant']['BINARY_THRESHOLD_MAX'],
+                                             255)
 
-        ops_for_img = Config.MORPH_OPERATIONS
+        ops_for_img = self.config['constant']['MORPH_OPERATIONS']
 
         img_morph = cv_op(img_binary, ops_for_img)
         img_morph = set_clean_boundary(img_morph)
-        img_morph = cv2.GaussianBlur(img_morph, Config.GAUSSIAN_K, 0)
+        img_morph = cv2.GaussianBlur(img_morph,
+                                     (self.config['constant']['GAUSSIAN_K'], self.config['constant']['GAUSSIAN_K']),
+                                     0)
 
         contours, hierarchy = cv2.findContours(img_morph, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         approx_contours = []
         for cnt in contours:
-            epsilon = Config.CONTOUR_EPSILON * cv2.arcLength(cnt, True)
+            epsilon = self.config['constant']['CONTOUR_EPSILON'] * cv2.arcLength(cnt, True)
             approx = cv2.approxPolyDP(cnt, epsilon, True)
             approx_contours.append(approx)
         valid_contours = []
         new_hierarchy = []
         mask_holes = np.zeros(img_morph.shape[:2], np.uint8)
         for i, contour in enumerate(approx_contours):
-            if len(contour) > Config.CONTOUR_MIN_LENGTH and cv2.contourArea(contour) > Config.CONTOUR_MIN_AREA:
+            if len(contour) > self.config['constant']['CONTOUR_MIN_LENGTH'] and cv2.contourArea(contour) > \
+                    self.config['constant']['CONTOUR_MIN_AREA']:
                 area = cv2.contourArea(contour)
                 hull = cv2.convexHull(contour)
                 hull_area = cv2.contourArea(hull)
                 solidity = float(area) / hull_area
                 if hierarchy[0][i][3] != -1:
                     cv2.drawContours(mask_holes, [contour], -1, 255, -1)
-                if hierarchy[0][i][3] != -1 or solidity <= Config.CONTOUR_MIN_SOLIDITY:
+                if hierarchy[0][i][3] != -1 or solidity <= self.config['constant']['CONTOUR_MIN_SOLIDITY']:
                     continue
                 contour_moments = cv2.moments(contour)
                 center_x = int(contour_moments["m10"] / contour_moments["m00"])
@@ -333,7 +346,7 @@ class VideoProcessing:
         cap.release()
 
     def save_video_compilation(self):
-        fps = Config.OUT_VIDEO_FPS
+        fps = self.config['constant']['OUT_VIDEO_FPS']
         input_params = {'-r': fps, }
         output_params = {'-r': fps, '-vcodec': 'libx264', '-crf': '0'}
         writer = skvideo.io.FFmpegWriter(self.VIDEO_SAVE_PATH, inputdict=input_params, outputdict=output_params)
