@@ -8,7 +8,6 @@ import skvideo.io
 from pathlib import Path
 import pandas as pd
 
-from n2v.models import N2V
 
 cv2_morphology_operation = {
     'erode': lambda x, y: cv2.erode(x, np.ones(y[0], np.uint8), iterations=1),
@@ -104,7 +103,6 @@ class VideoProcessing:
         self.BINARY_FRAMES_SAVE_PATH = self.FRAMES_SAVE_PATH + '/morph'
         self.RESULT_FRAMES_SAVE_PATH = self.FRAMES_SAVE_PATH + '/contours_gray'
         self.VIDEO_SAVE_PATH = f"{config['constant']['VIDEO_SAVE_FOLDER_PATH']}/{self.SAMPLE_NAME}_compile.mp4"
-        self.model = N2V(None, config['constant']['N2V_MODEL_NAME'], basedir=config['constant']['N2V_MODEL_DIR'])
         self.centroid_tracker = CentroidTracker()
         self.scale_factor = config['constant']['SCALE_FACTOR']
 
@@ -204,15 +202,14 @@ class VideoProcessing:
 
     def find_contours_only(self, img):
         img_uint8 = np.uint8(img)
-        nn_predict = np.uint8(self.model.predict(img_uint8, axes="YX"))
 
         if self.config['constant']['USE_NLM']:
-            nlm = cv2.fastNlMeansDenoising(nn_predict,
+            nlm = cv2.fastNlMeansDenoising(img_uint8,
                                            h=self.config['constant']['NLM_H'],
                                            templateWindowSize=self.config['constant']['NLM_TEMPLATE_WINDOW_SIZE'],
                                            searchWindowSize=self.config['constant']['NLM_TEMPLATE_WINDOW_SIZE'])
         else:
-            nlm = nn_predict
+            nlm = img_uint8
 
         img_bilateral = cv2.bilateralFilter(nlm,
                                             self.config['constant']['BILATERAL_D'],
