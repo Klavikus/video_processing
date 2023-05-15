@@ -3,8 +3,6 @@ XLSX_SAVE_PATH = "xlsx_result"
 VIDEO_SAVE_FOLDER_PATH = "video_out"
 SAVE_FOLDER_PATH = "results"
 SAMPLES_DIRECTORY = "data_for_denoise"
-N2V_MODEL_NAME = "n2v_64x64_05_256_5"
-N2V_MODEL_DIR = "models"
 SAMPLE_NAME = "Mov_S1"
 SAMPLE_EXTENSION = "avi"
 

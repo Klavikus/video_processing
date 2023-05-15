@@ -74,17 +74,3 @@ The following command will invoke video processing using the S1.toml configurati
 ```bash
 python run.py --config configs/video_denoise/S1.toml
 ```
-
-## Train N2V
-
-Use the following command to train the neural network:
-
-```bash
-python nn_train.py --config config.toml
-```
-
-The following command will call the neural network training using the base.toml configuration file:
-
-```bash
-python nn_train.py --config configs/nn_train/base.toml
-```
