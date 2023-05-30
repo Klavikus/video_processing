@@ -283,7 +283,7 @@ class VideoProcessing:
         frame_counter = 0
         contours_data_list = []
 
-        outer = tqdm.tqdm(total=int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT)), desc='Frames', position=0)
+        outer = tqdm.tqdm(total=int(cap.get(cv2.CAP_PROP_FRAME_COUNT)), desc='Frames', position=0)
 
         while cap.isOpened():
             ret, frame = cap.read()
