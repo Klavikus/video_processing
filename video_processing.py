@@ -1,4 +1,5 @@
 import cv2
+import tqdm
 import numpy as np
 from object_tracker import CentroidTracker
 from matplotlib import pyplot as plt
@@ -282,6 +283,8 @@ class VideoProcessing:
         frame_counter = 0
         contours_data_list = []
 
+        outer = tqdm.tqdm(total=int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT)), desc='Frames', position=0)
+
         while cap.isOpened():
             ret, frame = cap.read()
             if frame is None:
@@ -321,6 +324,7 @@ class VideoProcessing:
                         data_dict[item][0]['parent'].append(prev_item)
                         break
             frame_counter += 1
+            outer.update(1)
 
         cap.release()
 
