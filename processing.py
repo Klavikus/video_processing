@@ -69,7 +69,9 @@ pipeline.add_filter(ShowImage(config, 'gray'))
 
 sequence = [mpimg.imread(FILE_PATH)]
 # processed_sequence = pipeline.process_sequence(sequence, False)
-processed_sequence = pipeline.process_sequence_from_video(VIDEO_PATH, debug=True, take=30)
+processed_sequence = pipeline.process_sequence_from_video(VIDEO_PATH, debug=True, take=3)
 
+# print(processed_sequence['BinaryzationFilter'])
+print(processed_sequence.keys())
 filter_data = pipeline.filter_data
-print(filter_data)
+# print(filter_data)
