@@ -66,11 +66,31 @@ class ContourDetectionFilter(ImageFilter):
 
         for cnt in contours:
             epsilon = self.config['CONTOUR_EPSILON'] * cv2.arcLength(cnt, True)
-            # epsilon = self.config['CONTOUR_EPSILON'] * cv2.arcLength(cnt, True)
             approx = cv2.approxPolyDP(cnt, epsilon, True)
             approx_contours.append(approx)
 
-        contours_image = cv2.drawContours(contours_image, approx_contours, -1, (255, 255, 255), 3)
+        valid_contours = []
+        new_hierarchy = []
+        mask_holes = np.zeros(image.shape[:2], np.uint8)
+        for i, contour in enumerate(approx_contours):
+            if len(contour) > self.config['CONTOUR_MIN_LENGTH'] and cv2.contourArea(contour) > \
+                    self.config['CONTOUR_MIN_AREA']:
+                area = cv2.contourArea(contour)
+                hull = cv2.convexHull(contour)
+                hull_area = cv2.contourArea(hull)
+                solidity = float(area) / hull_area
+                if hierarchy[0][i][3] != -1:
+                    cv2.drawContours(mask_holes, [contour], -1, 255, -1)
+                if hierarchy[0][i][3] != -1 or solidity <= self.config['CONTOUR_MIN_SOLIDITY']:
+                    continue
+                contour_moments = cv2.moments(contour)
+                center_x = int(contour_moments["m10"] / contour_moments["m00"])
+                center_y = int(contour_moments["m01"] / contour_moments["m00"])
+                if not check_overlapping((center_x, center_y), (0, 0), (2 * 37, 2 * 16)):
+                    valid_contours.append(contour)
+                    new_hierarchy.append(hierarchy[0][i])
+
+        contours_image = cv2.drawContours(contours_image, valid_contours, -1, (255, 255, 255), 3)
 
         return contours_image
 
