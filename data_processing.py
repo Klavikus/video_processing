@@ -67,7 +67,7 @@ def get_inverse_dict(input_dict):
     return result_dict
 
 
-def draw_contours_and_save(result_dict, cont_list, load_video_path, result_frames_save_path):
+def draw_contours_and_save(result_dict, cont_list, load_video_path, result_frames_save_path, with_cv2_pause=False):
     cap = cv2.VideoCapture(load_video_path)
     frame_counter = 0
     while cap.isOpened:
@@ -77,9 +77,10 @@ def draw_contours_and_save(result_dict, cont_list, load_video_path, result_frame
 
         frame = draw_ct_data(frame, result_dict, frame_counter, cont_list)
         save_frame_as_png(frame_counter, frame, result_frames_save_path)
-        cv2.namedWindow("Input")
-        cv2.imshow("Input", frame)
-        cv2.waitKey(0)
+        if with_cv2_pause:
+            cv2.namedWindow("Input")
+            cv2.imshow("Input", frame)
+            cv2.waitKey(0)
         frame_counter += 1
 
     cap.release()
