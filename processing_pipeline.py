@@ -28,7 +28,7 @@ class ImageProcessingPipeline:
                     if filter_type not in self.filter_data:
                         self.filter_data[filter_type] = []
                         self.processed_sequence[filter_type] = []
-                    self.filter_data[filter_type].append(image_filter.filter_data)
+                    self.filter_data[filter_type].append(image_filter.filter_data.copy())
                     self.processed_sequence[filter_type].append(processed_frame)
                 if debug:
                     print(f'Frame proceed: {current_frame_id}')

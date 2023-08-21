@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import matplotlib.image as impl
-import matplotlib.pyplot as plt
 
 import os
 
@@ -12,7 +11,7 @@ class ImageFilter:
         self.filter_data = {}
 
     def process(self, image):
-        raise NotImplementedError('Subclasses must implement process method.&quot')
+        raise NotImplementedError('Subclasses must implement process method')
 
 
 class SaveAsPng(ImageFilter):
@@ -24,18 +23,8 @@ class SaveAsPng(ImageFilter):
         create_directory_if_not_exists(save_path)
 
     def process(self, image, grayscale=False):
-        save_image(image, f'{self.save_path}/{self.save_name}_{self.save_counter}.png', 'png', grayscale)
+        save_image(image, f'{self.save_path}/{self.save_name}_{self.save_counter}.png', 'png')
         self.save_counter += 1
-        return image
-
-
-class ShowImage(ImageFilter):
-    def __init__(self, config, cmap):
-        super().__init__(config)
-        self.cmap = cmap
-
-    def process(self, image):
-        plt.imshow(image, cmap=self.cmap)
         return image
 
 
@@ -50,15 +39,11 @@ class BinaryzationFilter(ImageFilter):
                                              255)
 
         img_binary = set_clean_boundary(img_binary, thickness=0)
-        # Алгоритм бинаризации изображения
-        # Возвращается измененное изображение
         return img_binary
 
 
 class ContourDetectionFilter(ImageFilter):
     def process(self, image):
-        # Алгоритм обнаружения контуров на изображении
-        # Возвращается измененное изображение
         contours, hierarchy = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         approx_contours = []
 
@@ -91,7 +76,8 @@ class ContourDetectionFilter(ImageFilter):
                     new_hierarchy.append(hierarchy[0][i])
 
         contours_image = cv2.drawContours(contours_image, valid_contours, -1, (255, 255, 255), 3)
-
+        self.filter_data['contours'] = valid_contours
+        self.filter_data['mask_holes'] = mask_holes
         return contours_image
 
 
@@ -127,27 +113,16 @@ class ReplaceFilter(ImageFilter):
         self.color = color
 
     def process(self, image):
-
         for i in range(self.x_slice[0], self.x_slice[1]):
             for j in range(self.y_slice[0], self.y_slice[1]):
                 image[i][j] = self.color
-
         return image
 
 
 class DenoiseFilter(ImageFilter):
     def process(self, image):
-        # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)[:-36, :]
-
         scale_factor = 1
         image = cv2.resize(image, (0, 0), fx=scale_factor, fy=scale_factor)
-
-        dx = 32
-        dy = 74
-        image[0:dx, 0:dy] = 0
-
-        # image = np.clip(image, 0, 1)
-
         img_uint8 = np.uint8(image)
 
         if self.config['USE_NLM']:
@@ -172,6 +147,28 @@ class DenoiseFilter(ImageFilter):
         return denoised_image
 
 
+class TrackingModule:
+    def __init__(self, centroid_tracker):
+        self.centroid_tracker = centroid_tracker
+
+    def process(self, image, contours, mask_holes):
+        bounding_rectangles = []
+        for contour in contours:
+            mask = np.zeros(image.shape[:2], np.uint8)
+            cv2.drawContours(mask, [contour], -1, 255, -1)
+            holes = mask_holes > 0
+            cnt_mask = mask - mask_holes
+            cnt_mask[holes] = 0
+            count = cv2.countNonZero(cnt_mask)
+            x, y, w, h = cv2.boundingRect(contour)
+            area = count
+            perimeter = cv2.arcLength(contour, True)
+            bounding_rectangles.append((x, y, x + w, y + h, area, perimeter, contour))
+
+        self.centroid_tracker.update(bounding_rectangles)
+        return image
+
+
 def binary_segmentation(img, min_value, max_value, color=255):
     binary_image = np.zeros((img.shape[0], img.shape[1]), dtype=np.uint8)
     data_segment = (img >= min_value) & (img <= max_value)
@@ -191,7 +188,7 @@ def check_overlapping(input_point, start_point, end_point):
     return start_point[0] <= input_point[0] <= end_point[0] and start_point[1] <= input_point[1] <= end_point[1]
 
 
-def save_image(image, save_path, file_format, grayscale):
+def save_image(image, save_path, file_format):
     if file_format == "png":
         impl.imsave(save_path, image, format="png", cmap="gray")
     elif file_format == "jpg":

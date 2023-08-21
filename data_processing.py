@@ -1,3 +1,7 @@
+import matplotlib.pyplot as plt
+import cv2
+
+
 def calc_mean(seq, fps, start_index, length):
     temp_mean = [0, 0]
     for i in range(length):
@@ -61,3 +65,42 @@ def get_inverse_dict(input_dict):
             else:
                 result_dict[frame_data[0]] = [(key, frame_data[1], frame_data[2], frame_data[3])]
     return result_dict
+
+
+def draw_contours_and_save(result_dict, cont_list, load_video_path, result_frames_save_path):
+    cap = cv2.VideoCapture(load_video_path)
+    frame_counter = 0
+    while cap.isOpened:
+        ret, frame = cap.read()
+        if frame is None:
+            break
+
+        frame = draw_ct_data(frame, result_dict, frame_counter, cont_list)
+        save_frame_as_png(frame_counter, frame, result_frames_save_path)
+        cv2.namedWindow("Input")
+        cv2.imshow("Input", frame)
+        cv2.waitKey(0)
+        frame_counter += 1
+
+    cap.release()
+
+
+def save_frame_as_png(frame_index, frame, save_dir):
+    plt.imsave(f'{save_dir}/frame_{frame_index}.png', frame, cmap='gray')
+    return f'{save_dir}/frame_{frame_index}.png'
+
+
+def draw_ct_data(frame, res, frame_id, cont_list):
+    if frame_id >= len(cont_list):
+        return frame
+    for contour in cont_list[frame_id]:
+        cv2.drawContours(frame, [contour], -1, (0, 255, 0), 3)
+    if frame_id in res:
+        for objects_data in res[frame_id]:
+            obj_id = objects_data[0]
+            centroid = objects_data[1]
+            text = f"ID {obj_id}"
+            cv2.putText(frame, text, (centroid[0] - 10, centroid[1] - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            cv2.circle(frame, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
+    return frame
