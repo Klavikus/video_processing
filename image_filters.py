@@ -42,6 +42,19 @@ class BinaryzationFilter(ImageFilter):
         return img_binary
 
 
+class MorphologicalFilter(ImageFilter):
+
+    def process(self, image):
+        ops_for_img = self.config['MORPH_OPERATIONS']
+
+        img_morph = cv_op(image, ops_for_img)
+        img_morph = set_clean_boundary(img_morph)
+        # img_morph = cv2.GaussianBlur(img_morph,
+        #                              (self.config['GAUSSIAN_K'], self.config['GAUSSIAN_K']),
+        #                              0)
+        return img_morph
+
+
 class ContourDetectionFilter(ImageFilter):
     def process(self, image):
         contours, hierarchy = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -202,3 +215,23 @@ def save_image(image, save_path, file_format):
 def create_directory_if_not_exists(save_path):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
+
+
+cv2_morphology_operation = {
+    'erode': lambda x, y: cv2.erode(x, np.ones(y[0], np.uint8), iterations=1),
+    'dilate': lambda x, y: cv2.dilate(x, np.ones(y[0], np.uint8), iterations=1),
+    'open': lambda x, y: cv2.morphologyEx(x, cv2.MORPH_OPEN, np.ones(y[0], np.uint8)),
+    'close': lambda x, y: cv2.morphologyEx(x, cv2.MORPH_CLOSE, np.ones(y[0], np.uint8)),
+}
+
+
+def cv_op(img, operation_list):
+    for operation in operation_list:
+        splitted = operation.split('_')
+        key = splitted[0]
+        kern_size = int(splitted[1])
+        iterations = int(splitted[2])
+
+        for i in range(iterations):
+            img = cv2_morphology_operation[key](img, ((kern_size, kern_size), iterations))
+    return img
