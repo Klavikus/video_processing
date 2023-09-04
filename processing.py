@@ -1,12 +1,11 @@
 from data_processing import *
 from image_filters import *
 from processing_pipeline import ImageProcessingPipeline
-import matplotlib.image as mpimg
 from object_tracker import CentroidTracker
 
 config = {
-    'SAMPLE_NAME': 'Mov_S1',
-    'SAMPLE_EXTENSION': 'avi',
+    'SAMPLE_NAME': 'Mov_S8',
+    'SAMPLE_EXTENSION': 'mov',
     'SAMPLES_DIRECTORY': 'data_for_denoise',
     'SAVE_FOLDER_PATH': 'results',
     'VIDEO_SAVE_FOLDER_PATH': 'video_out',
@@ -22,9 +21,9 @@ config = {
     'GAUSSIAN_K': 13,
     'MEDIAN_K': 7,
 
-    'USE_ADAPTIVE': True,
-    'BINARY_THRESHOLD_MIN': 90,
-    'BINARY_THRESHOLD_MAX': 190,
+    'USE_ADAPTIVE': False,
+    'BINARY_THRESHOLD_MIN': 56,
+    'BINARY_THRESHOLD_MAX': 250,
 
     'USE_NLM': False,
     'NLM_H': 8,
@@ -32,9 +31,10 @@ config = {
     'NLM_SEARCH_WINDOW_SIZE': 15,
 
     'MORPH_OPERATIONS': [
-        "close_3_1",
-        "open_7_1",
-        "dilate_3_1",
+        # "close_3_1",
+        # "erode_3_1",
+        "open_5_1",
+        # "dilate_3_1",
     ],
 
     'CONTOUR_EPSILON': 0.0001,
@@ -51,24 +51,22 @@ replace_x_slice = (0, 34)
 replace_y_slice = (0, 74)
 
 SAMPLE_NAME = 'S1'
-FILE_PATH = 'data_for_denoise/frames/frame_0.jpg'
 VIDEO_PATH = 'data_for_denoise/Mov_S1.avi'
 
 pipeline = ImageProcessingPipeline()
 # pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/source', 'frame'))
 pipeline.add_filter(CropFilter(config, x_slice, y_slice))  # Обрезаем легенду снизу
+pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/sliced', f'{SAMPLE_NAME}_frame'))
 pipeline.add_filter(ReplaceFilter(config, replace_x_slice, replace_y_slice))  # Закрашиваем чёрным надпись RUN
-# pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/sliced', 'frame'))
 pipeline.add_filter(ConverterBGR2GRAY(config))  # Конвертируем в gray из bgr
 pipeline.add_filter(DenoiseFilter(config))  # Шумоподавление
-# pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/denoised', 'frame'))
+pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/denoised', f'{SAMPLE_NAME}_frame'))
 pipeline.add_filter(BinaryzationFilter(config))  # Бинаризация
-# pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/binaryzed', 'frame'))
+pipeline.add_filter(MorphologicalFilter(config))
+pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/binaryzed', f'{SAMPLE_NAME}_frame'))
 pipeline.add_filter(ContourDetectionFilter(config))  # Определение контуров
-# pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/with_contours', 'frame'))
+pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/with_contours', f'{SAMPLE_NAME}_frame'))
 
-sequence = [mpimg.imread(FILE_PATH)]
-# processed_sequence = pipeline.process_sequence(sequence, False)
 processed_sequence = pipeline.process_sequence_from_video(VIDEO_PATH, debug=True, take=-1)
 
 # print(processed_sequence['BinaryzationFilter'])
@@ -89,11 +87,13 @@ for i in range(frame_amount):
     tracking_module.process(image, contours, mask_holes)
     contours_list.append(contours)
 
-ct_data = centroid_tracker.data
-ct_data_dict = centroid_tracker.data_dict
+ct_data = centroid_tracker.get_data()
+ct_data_dict = centroid_tracker.get_data_dict()
 
 mean_data = get_mean_data(ct_data, config['MEAN_DATA_SAMPLE_RATE'])
 inverse_dict = get_inverse_dict(mean_data)
-draw_contours_and_save(inverse_dict, contours_list, VIDEO_PATH, f'results/{SAMPLE_NAME}/with_contours')
+draw_contours_and_save(inverse_dict, contours_list, VIDEO_PATH, f'results/{SAMPLE_NAME}/with_contours',
+                       with_cv2_pause=False)
 
-print(centroid_tracker.data)
+print(centroid_tracker.get_data())
+
