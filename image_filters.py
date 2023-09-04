@@ -137,27 +137,44 @@ class DenoiseFilter(ImageFilter):
         scale_factor = 1
         image = cv2.resize(image, (0, 0), fx=scale_factor, fy=scale_factor)
         img_uint8 = np.uint8(image)
-
-        if self.config['USE_NLM']:
-            nlm = cv2.fastNlMeansDenoising(img_uint8,
-                                           h=self.config['NLM_H'],
-                                           templateWindowSize=self.config['NLM_TEMPLATE_WINDOW_SIZE'],
-                                           searchWindowSize=self.config['NLM_TEMPLATE_WINDOW_SIZE'])
-        else:
-            nlm = img_uint8
-
-        img_bilateral = cv2.bilateralFilter(nlm,
-                                            self.config['BILATERAL_D'],
-                                            self.config['BILATERAL_SIGMA_COLOR'],
-                                            self.config['BILATERAL_SIGMA_SPACE'])
-
-        img_median = cv2.medianBlur(img_bilateral, self.config['MEDIAN_K'])
-
-        denoised_image = cv2.GaussianBlur(img_median,
-                                          (self.config['GAUSSIAN_K'], self.config['GAUSSIAN_K']),
-                                          0)
-
+        #
+        # if self.config['USE_NLM']:
+        #     nlm = cv2.fastNlMeansDenoising(img_uint8,
+        #                                    h=self.config['NLM_H'],
+        #                                    templateWindowSize=self.config['NLM_TEMPLATE_WINDOW_SIZE'],
+        #                                    searchWindowSize=self.config['NLM_TEMPLATE_WINDOW_SIZE'])
+        # else:
+        #     nlm = img_uint8
+        #
+        # img_bilateral = cv2.bilateralFilter(nlm,
+        #                                     self.config['BILATERAL_D'],
+        #                                     self.config['BILATERAL_SIGMA_COLOR'],
+        #                                     self.config['BILATERAL_SIGMA_SPACE'])
+        #
+        # img_median = cv2.medianBlur(img_bilateral, self.config['MEDIAN_K'])
+        #
+        # denoised_image = cv2.GaussianBlur(img_median,
+        #                                   (self.config['GAUSSIAN_K'], self.config['GAUSSIAN_K']),
+        #                                   0)
+        denoised_image = img_uint8
         return denoised_image
+
+
+class NeuroBinary(ImageFilter):
+    def __init__(self, config, model):
+        super().__init__(config)
+        self.model = model
+
+    def process(self, image):
+        initial_shape = image.shape
+        resized_image = cv2.resize(image, (512, 512))
+        processed_image = np.expand_dims(resized_image, axis=2)
+        processed_image = np.repeat(processed_image, 3, axis=2)
+        processed_image = np.expand_dims(processed_image, axis=0)
+        predicted_image = self.model.predict(processed_image)[0]
+        initial_shape_predicted_image = cv2.resize(predicted_image, (initial_shape[1], initial_shape[0]))
+        image_uint8 = (initial_shape_predicted_image * 255).astype(np.uint8)
+        return image_uint8
 
 
 class TrackingModule:

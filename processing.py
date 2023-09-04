@@ -2,10 +2,11 @@ from data_processing import *
 from image_filters import *
 from processing_pipeline import ImageProcessingPipeline
 from object_tracker import CentroidTracker
+from unet_model import UnetModel
 
 config = {
-    'SAMPLE_NAME': 'Mov_S8',
-    'SAMPLE_EXTENSION': 'mov',
+    'SAMPLE_NAME': 'Mov_S1',
+    'SAMPLE_EXTENSION': 'avi',
     'SAMPLES_DIRECTORY': 'data_for_denoise',
     'SAVE_FOLDER_PATH': 'results',
     'VIDEO_SAVE_FOLDER_PATH': 'video_out',
@@ -50,8 +51,10 @@ y_slice = (0, 0)
 replace_x_slice = (0, 34)
 replace_y_slice = (0, 74)
 
-SAMPLE_NAME = 'S1'
-VIDEO_PATH = 'data_for_denoise/Mov_S1.avi'
+SAMPLE_NAME = 'S8'
+VIDEO_PATH = 'data_for_denoise/Mov_S8.mov'
+
+model = UnetModel().compile('best_model.h5')
 
 pipeline = ImageProcessingPipeline()
 # pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/source', 'frame'))
@@ -60,8 +63,9 @@ pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/sliced', f'{SAMPLE
 pipeline.add_filter(ReplaceFilter(config, replace_x_slice, replace_y_slice))  # Закрашиваем чёрным надпись RUN
 pipeline.add_filter(ConverterBGR2GRAY(config))  # Конвертируем в gray из bgr
 pipeline.add_filter(DenoiseFilter(config))  # Шумоподавление
-pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/denoised', f'{SAMPLE_NAME}_frame'))
-pipeline.add_filter(BinaryzationFilter(config))  # Бинаризация
+# pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/denoised', f'{SAMPLE_NAME}_frame'))
+# pipeline.add_filter(BinaryzationFilter(config))  # Бинаризация
+pipeline.add_filter(NeuroBinary(config, model))  # Бинаризация NN
 pipeline.add_filter(MorphologicalFilter(config))
 pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/binaryzed', f'{SAMPLE_NAME}_frame'))
 pipeline.add_filter(ContourDetectionFilter(config))  # Определение контуров
@@ -96,4 +100,3 @@ draw_contours_and_save(inverse_dict, contours_list, VIDEO_PATH, f'results/{SAMPL
                        with_cv2_pause=False)
 
 print(centroid_tracker.get_data())
-
