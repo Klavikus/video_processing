@@ -1,12 +1,16 @@
 from collections import OrderedDict
-
 from scipy.spatial import distance as dist
 import numpy as np
 import cv2
 
 
 class CentroidTracker:
-    def __init__(self, max_disappeared=30):
+    def __init__(self, max_disappeared: int = 30):
+        """
+        Инициализирует CentroidTracker.
+
+        :param max_disappeared: Максимальное количество итераций, после которых объект считается потерянным.
+        """
         self.nextObjectID = 0
         self.objects = OrderedDict()
         self.objects_vectors_instant = OrderedDict()
@@ -20,6 +24,12 @@ class CentroidTracker:
         self.parents = OrderedDict()
 
     def register(self, centroid: object, input_data):
+        """
+        Регистрирует новый объект для отслеживания.
+
+        :param centroid: Центроид объекта (координаты X и Y).
+        :param input_data: Входные данные для объекта.
+        """
         self.objects[self.nextObjectID] = centroid
         self.disappeared[self.nextObjectID] = 0
         self.parents[self.nextObjectID] = ['none']
@@ -37,10 +47,21 @@ class CentroidTracker:
         self.nextObjectID += 1
 
     def unregister(self, object_id):
+        """
+        Удаляет объект из отслеживания.
+
+        :param object_id: Уникальный идентификатор объекта.
+        """
         del self.objects[object_id]
         del self.disappeared[object_id]
 
     def update(self, bounding_rectangles):
+        """
+        Обновляет отслеживание на основе новых позиций объектов.
+
+        :param bounding_rectangles: Список ограничивающих прямоугольников для объектов.
+        :return: Обновленные координаты объектов и векторы скорости объектов.
+        """
         if len(bounding_rectangles) == 0:
             for object_id in list(self.disappeared.keys()):
                 self.disappeared[object_id] += 1
@@ -82,7 +103,7 @@ class CentroidTracker:
                 new_state = input_centroids[col]
                 prev_state = self.objects[object_id]
                 frame_delay = self.disappeared[object_id]
-                vector_speed = self.calculate_speed(new_state, prev_state, frame_delay)
+                vector_speed = self._calculate_speed(new_state, prev_state, frame_delay)
 
                 self.objects_vectors_instant[object_id] = vector_speed
                 self.tracked[object_id] += 1
@@ -116,8 +137,28 @@ class CentroidTracker:
         self.cur_frame = self.cur_frame + 1
         return self.objects, self.objects_vectors_instant
 
+    def get_data(self) -> OrderedDict:
+        """
+        Возвращает копию объекта `data`.
+        """
+        return self.data.copy()
+
+    def get_data_dict(self) -> dict:
+        """
+        Возвращает копию объекта `data_dict`.
+        """
+        return self.data_dict.copy()
+
     @staticmethod
-    def calculate_speed(cur_state, prev_state, frame_delay):
+    def _calculate_speed(cur_state, prev_state, frame_delay):
+        """
+        Вычисляет вектор скорости на основе текущего и предыдущего состояний объекта.
+
+        :param cur_state: Текущее состояние объекта (координаты X и Y).
+        :param prev_state: Предыдущее состояние объекта (координаты X и Y).
+        :param frame_delay: Задержка между кадрами.
+        :return: Вектор скорости объекта.
+        """
         vector_spd = (
             (cur_state[0] - prev_state[0]) / (1 + frame_delay), (cur_state[1] - prev_state[1]) / (1 + frame_delay))
         return vector_spd
