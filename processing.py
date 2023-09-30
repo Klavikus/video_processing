@@ -12,31 +12,7 @@ config = {
     'VIDEO_SAVE_FOLDER_PATH': 'video_out',
     'XLSX_SAVE_PATH': 'xlsx_result',
 
-    'SCALE_FACTOR': 2,
     'MEAN_DATA_SAMPLE_RATE': 30,
-
-    'BILATERAL_D': 3,
-    'BILATERAL_SIGMA_COLOR': 25,
-    'BILATERAL_SIGMA_SPACE': 25,
-
-    'GAUSSIAN_K': 13,
-    'MEDIAN_K': 7,
-
-    'USE_ADAPTIVE': False,
-    'BINARY_THRESHOLD_MIN': 56,
-    'BINARY_THRESHOLD_MAX': 250,
-
-    'USE_NLM': False,
-    'NLM_H': 8,
-    'NLM_TEMPLATE_WINDOW_SIZE': 37,
-    'NLM_SEARCH_WINDOW_SIZE': 15,
-
-    'MORPH_OPERATIONS': [
-        # "close_3_1",
-        # "erode_3_1",
-        "open_5_1",
-        # "dilate_3_1",
-    ],
 
     'CONTOUR_EPSILON': 0.0001,
     'CONTOUR_MIN_LENGTH': 5,
@@ -51,8 +27,11 @@ y_slice = (0, 0)
 replace_x_slice = (0, 34)
 replace_y_slice = (0, 74)
 
-SAMPLE_NAME = 'S8'
-VIDEO_PATH = 'data_for_denoise/Mov_S8.mov'
+SAMPLE_NAME = 'Mov_S1'
+SAMPLE_EXTENSION = 'avi'
+SAMPLES_DIRECTORY = 'data_for_denoise'
+
+VIDEO_PATH = f'{SAMPLES_DIRECTORY}/{SAMPLE_NAME}.{SAMPLE_EXTENSION}'
 
 model = UnetModel().compile('best_model.h5')
 
@@ -64,9 +43,7 @@ pipeline.add_filter(ReplaceFilter(config, replace_x_slice, replace_y_slice))  # 
 pipeline.add_filter(ConverterBGR2GRAY(config))  # Конвертируем в gray из bgr
 pipeline.add_filter(DenoiseFilter(config))  # Шумоподавление
 # pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/denoised', f'{SAMPLE_NAME}_frame'))
-# pipeline.add_filter(BinaryzationFilter(config))  # Бинаризация
 pipeline.add_filter(NeuroBinary(config, model))  # Бинаризация NN
-pipeline.add_filter(MorphologicalFilter(config))
 pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/binaryzed', f'{SAMPLE_NAME}_frame'))
 pipeline.add_filter(ContourDetectionFilter(config))  # Определение контуров
 pipeline.add_filter(SaveAsPng(config, f'results/{SAMPLE_NAME}/with_contours', f'{SAMPLE_NAME}_frame'))
@@ -99,4 +76,40 @@ inverse_dict = get_inverse_dict(mean_data)
 draw_contours_and_save(inverse_dict, contours_list, VIDEO_PATH, f'results/{SAMPLE_NAME}/with_contours',
                        with_cv2_pause=False)
 
-print(centroid_tracker.get_data())
+import pandas as pd
+
+def data_to_xlsx(data_dict, output_path=''):
+    frames_id, objects_id, center_x, center_y, centroid_s, centroid_p, solidity, spd_x, spd_y = [[] for _ in
+                                                                                                 range(9)]
+    for (key, val) in data_dict.items():
+        for data in val:
+            objects_id.append(key)
+            frames_id.append(data['frame_id'] + 1)
+            center_x.append(data["center_xy"][0])
+            center_y.append(data["center_xy"][1])
+            centroid_s.append(data["centroid_data"][0])
+            centroid_p.append(data["centroid_data"][1])
+            solidity.append(data["centroid_data"][3])
+            spd_x.append(data["speed_vector"][0])
+            spd_y.append(data["speed_vector"][1])
+
+    df = pd.DataFrame(
+        {
+            'ObjectID': objects_id,
+            'Time(frame)': frames_id,
+            'cX(px)': center_x,
+            'cY(px)': center_y,
+            'S(px^2)': centroid_s,
+            'P(px)': centroid_p,
+            'Solidity': solidity,
+            'SpdX(px/frame)': spd_x,
+            'SpdY(px/frame)': spd_y,
+        }
+    )
+    df.to_excel(f"{output_path + SAMPLE_NAME}_result_1.xlsx", sheet_name="processing_result", index=False)
+    df = df.groupby(['Time(frame)'])['ObjectID'].agg(['count'])
+    df = df.rename(columns={'count': 'ObjectCount'})
+    df.to_excel(f"{output_path + SAMPLE_NAME}_result_2.xlsx", sheet_name="processing_result", index=True)
+
+
+data_to_xlsx(ct_data_dict, f"{config['XLSX_SAVE_PATH']}/")
