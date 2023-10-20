@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import cv2
+import os
 
 
 def calc_mean(seq, fps, start_index, length):
@@ -67,13 +68,21 @@ def get_inverse_dict(input_dict):
     return result_dict
 
 
-def draw_contours_and_save(result_dict, cont_list, load_video_path, result_frames_save_path, with_cv2_pause=False):
+def draw_contours_and_save(result_dict, cont_list, load_video_path, result_frames_save_path, with_cv2_pause=False,
+                           x_slice=(0, 0), y_slice=(0, 0)):
     cap = cv2.VideoCapture(load_video_path)
     frame_counter = 0
     while cap.isOpened:
         ret, frame = cap.read()
         if frame is None:
             break
+
+        start_x = x_slice[0]
+        end_x = frame.shape[:2][0] if x_slice[1] == 0 else x_slice[1]
+        start_y = y_slice[0]
+        end_y = frame.shape[:2][1] if y_slice[1] == 0 else y_slice[1]
+
+        frame = frame[start_x:end_x, start_y:end_y]
 
         frame = draw_ct_data(frame, result_dict, frame_counter, cont_list)
         save_frame_as_png(frame_counter, frame, result_frames_save_path)
@@ -87,8 +96,11 @@ def draw_contours_and_save(result_dict, cont_list, load_video_path, result_frame
 
 
 def save_frame_as_png(frame_index, frame, save_dir):
-    plt.imsave(f'{save_dir}/frame_{frame_index}.png', frame, cmap='gray')
-    return f'{save_dir}/frame_{frame_index}.png'
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    save_path = f'{save_dir}/frame_{frame_index}.png'
+    plt.imsave(save_path, frame, cmap='gray')
+    return save_path
 
 
 def draw_ct_data(frame, res, frame_id, cont_list):

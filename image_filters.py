@@ -138,15 +138,7 @@ class DenoiseFilter(ImageFilter):
         image = cv2.resize(image, (0, 0), fx=scale_factor, fy=scale_factor)
         img_uint8 = np.uint8(image)
         #
-        # if self.config['USE_NLM']:
-        #     nlm = cv2.fastNlMeansDenoising(img_uint8,
-        #                                    h=self.config['NLM_H'],
-        #                                    templateWindowSize=self.config['NLM_TEMPLATE_WINDOW_SIZE'],
-        #                                    searchWindowSize=self.config['NLM_TEMPLATE_WINDOW_SIZE'])
-        # else:
-        #     nlm = img_uint8
-        #
-        # img_bilateral = cv2.bilateralFilter(nlm,
+        # img_bilateral = cv2.bilateralFilter(img_uint8,
         #                                     self.config['BILATERAL_D'],
         #                                     self.config['BILATERAL_SIGMA_COLOR'],
         #                                     self.config['BILATERAL_SIGMA_SPACE'])
@@ -156,7 +148,9 @@ class DenoiseFilter(ImageFilter):
         # denoised_image = cv2.GaussianBlur(img_median,
         #                                   (self.config['GAUSSIAN_K'], self.config['GAUSSIAN_K']),
         #                                   0)
+
         denoised_image = img_uint8
+
         return denoised_image
 
 
